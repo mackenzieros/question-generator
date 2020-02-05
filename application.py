@@ -2,7 +2,7 @@ import spacy
 from flask import Flask, request, abort, jsonify
 
 app = Flask(__name__)
-nlp = spacy.load('en_core_web_md')
+nlp = spacy.load('en_core_web_sm')
 
 # TODO:
 # Generate new type of question where object is found before subject
