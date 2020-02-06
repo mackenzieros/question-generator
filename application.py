@@ -57,22 +57,18 @@ class QuestionGenerator:
         self._questions = []
         self._generate_questions()
     
-
-    def _is_proper_noun(self, span) -> bool:
+    
+    def _capitalize_proper_nouns(self, span) -> str:
         '''
-        Determines if a noun is proper. 
-        Used for capitalization of a noun.
+        Capitalizes all proper nouns found in the span.
         
         Args:
-            span: spacy.Span containing the noun
+            span: spacy.Span representing clausal subject
         
         Returns:
-            A bool indicating whether or not to capitalize
+            A properly capitalized subject
         '''
-        if len(span.ents) < 1:
-            return False
-
-        return any(token for token in span if token.pos_ in {'PROPN'})
+        return ' '.join([token.text if token.pos_ == 'PROPN' else token.text.lower() for token in span])
 
 
     def _find_nsubj_in_tokens(self, clause) -> 'spacy.Token' or None:
@@ -345,11 +341,11 @@ class QuestionGenerator:
             if None in {c_map['wh'], c_map['aux'], c_map['nsubj'], c_map['verb']}:
                 end += 1
                 continue
-            
+
             self._questions.append(QuestionGenerator.Question(
                 c_map['wh'], 
                 c_map['aux'], 
-                c_map['nsubj'].text if self._is_proper_noun(c_map['nsubj']) else c_map['nsubj'].text.lower(), 
+                self._capitalize_proper_nouns(c_map['nsubj']),
                 c_map['verb'].lower(),
                 c_map['obj'],
             ))
@@ -363,11 +359,11 @@ class QuestionGenerator:
 
             if None in {c_map['wh'], c_map['aux'], c_map['nsubj'], c_map['verb']}:
                 return
-
+            
             self._questions.append(QuestionGenerator.Question(
                 c_map['wh'], 
                 c_map['aux'], 
-                c_map['nsubj'].text if self._is_proper_noun(c_map['nsubj']) else c_map['nsubj'].text.lower(), 
+                self._capitalize_proper_nouns(c_map['nsubj']), 
                 c_map['verb'].lower(),
                 c_map['obj'],
             ))
