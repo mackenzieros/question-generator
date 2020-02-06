@@ -55,22 +55,18 @@ class QuestionGenerator:
         self._questions = []
         self._generate_questions()
     
-
-    def _is_proper_noun(self, span) -> bool:
+    
+    def _capitalize_proper_nouns(self, span) -> str:
         '''
-        Determines if a noun is proper. 
-        Used for capitalization of a noun.
+        Capitalizes all proper nouns found in the span.
         
         Args:
-            span: spacy.Span containing the noun
+            span: spacy.Span representing clausal subject
         
         Returns:
-            A bool indicating whether or not to capitalize
+            A properly capitalized subject
         '''
-        if len(span.ents) < 1:
-            return False
-
-        return any(token for token in span if token.pos_ in {'PROPN'})
+        return ' '.join([token.text if token.pos_ == 'PROPN' else token.text.lower() for token in span])
 
 
     def _find_nsubj_in_tokens(self, clause) -> 'spacy.Token' or None:
@@ -146,7 +142,7 @@ class QuestionGenerator:
             print('err: could not fine grain tune', aux)
             return aux.text
 
-    def _determine_aux(self, clause, verb, verb_tense) -> str:
+    def _determine_aux(self, clause, verb, verb_tense, subj) -> str:
         '''
         Determines the auxillary verb to be used in the question by checking the verb tense,
         trying to find the aux verb in the sentence, or using defaults.
@@ -174,6 +170,8 @@ class QuestionGenerator:
         if verb_tense == 'PAST_TENSE':
             return 'did'
         elif verb_tense == 'PRESENT':
+            if 'plural' in spacy.explain(subj.root.tag_): # check plurality of subject
+                return 'do'
             return 'does'
         else:
             print('err: could not determine aux verb')
@@ -287,7 +285,7 @@ class QuestionGenerator:
 
         wh = self._determine_wh(clause, subj.root, obj)
         verb_tense = self._determine_verb_tense(verb)
-        aux = self._determine_aux(clause, verb, verb_tense)
+        aux = self._determine_aux(clause, verb, verb_tense, subj)
         
         if verb_tense in {'PAST_TENSE', 'PRESENT'} and verb.text != aux:
             verb = verb.lemma_
@@ -341,11 +339,11 @@ class QuestionGenerator:
             if None in {c_map['wh'], c_map['aux'], c_map['nsubj'], c_map['verb']}:
                 end += 1
                 continue
-            
+
             self._questions.append(QuestionGenerator.Question(
                 c_map['wh'], 
                 c_map['aux'], 
-                c_map['nsubj'].text if self._is_proper_noun(c_map['nsubj']) else c_map['nsubj'].text.lower(), 
+                self._capitalize_proper_nouns(c_map['nsubj']),
                 c_map['verb'].lower(),
                 c_map['obj'],
             ))
@@ -359,11 +357,11 @@ class QuestionGenerator:
 
             if None in {c_map['wh'], c_map['aux'], c_map['nsubj'], c_map['verb']}:
                 return
-
+            
             self._questions.append(QuestionGenerator.Question(
                 c_map['wh'], 
                 c_map['aux'], 
-                c_map['nsubj'].text if self._is_proper_noun(c_map['nsubj']) else c_map['nsubj'].text.lower(), 
+                self._capitalize_proper_nouns(c_map['nsubj']), 
                 c_map['verb'].lower(),
                 c_map['obj'],
             ))
