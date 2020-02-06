@@ -1,7 +1,7 @@
 import spacy
 from collections import defaultdict
 
-nlp = spacy.load('en_core_web_md')
+nlp = spacy.load('en_core_web_sm')
 
 # TODO:
 # Generate new type of question where object is found before subject
@@ -378,8 +378,8 @@ class QuestionGenerator:
 
             
 
-# if __name__ == '__main__':
-#     doc = nlp(u'A* (pronounced "A-star") is a graph traversal and path search algorithm, and it is often used in computer science due to its completeness,'
-#     u' optimality, and optimal efficiency. One major practical drawback is its O(b^d) space complexity, as it stores all generated nodes in memory.')
-#     qg = QuestionGenerator(doc)
-#     qg.get_questions()
+if __name__ == '__main__':
+    doc = nlp(u'A* (pronounced "A-star") is a graph traversal and path search algorithm, and it is often used in computer science due to its completeness,'
+    u' optimality, and optimal efficiency. One major practical drawback is its O(b^d) space complexity, as it stores all generated nodes in memory.')
+    qg = QuestionGenerator(doc)
+    qg.get_questions()
