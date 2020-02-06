@@ -148,7 +148,7 @@ class QuestionGenerator:
             print('err: could not fine grain tune', aux)
             return aux.text
 
-    def _determine_aux(self, clause, verb, verb_tense) -> str:
+    def _determine_aux(self, clause, verb, verb_tense, subj) -> str:
         '''
         Determines the auxillary verb to be used in the question by checking the verb tense,
         trying to find the aux verb in the sentence, or using defaults.
@@ -176,6 +176,8 @@ class QuestionGenerator:
         if verb_tense == 'PAST_TENSE':
             return 'did'
         elif verb_tense == 'PRESENT':
+            if 'plural' in spacy.explain(subj.root.tag_): # check plurality of subject
+                return 'do'
             return 'does'
         else:
             print('err: could not determine aux verb')
@@ -289,7 +291,7 @@ class QuestionGenerator:
 
         wh = self._determine_wh(clause, subj.root, obj)
         verb_tense = self._determine_verb_tense(verb)
-        aux = self._determine_aux(clause, verb, verb_tense)
+        aux = self._determine_aux(clause, verb, verb_tense, subj)
         
         if verb_tense in {'PAST_TENSE', 'PRESENT'} and verb.text != aux:
             verb = verb.lemma_
