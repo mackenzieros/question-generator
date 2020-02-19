@@ -170,7 +170,7 @@ class QuestionGenerator:
         if verb_tense == 'PAST_TENSE':
             return 'did'
         elif verb_tense == 'PRESENT':
-            if 'plural' in spacy.explain(subj.root.tag_): # check plurality of subject
+            if 'non-3rd' in spacy.explain(verb.tag_): # check form of verb
                 return 'do'
             return 'does'
         else:
@@ -251,17 +251,9 @@ class QuestionGenerator:
         for chunk in clause.noun_chunks:
             if chunk.root.dep_ in {'csubj', 'csubjpass', 'nsubj', 'nsubjpass'}:
                 subj_subtree = [child for child in chunk.subtree]
-                subj = self._doc[subj_subtree[0].i: subj_subtree[-1].i + 1] # subject is nsubj and all of its children
                 
                 verb = chunk.root.head # re-assign verb because actual root verb may not be included
                 c_map['end'] = verb.right_edge.i
-                
-                # find the object of the sentence
-                for child in verb.children:
-                    obj_found = self._search_for_object(child)
-                    if obj_found:
-                        obj = obj_found
-                        break
 
                 break
     
@@ -273,16 +265,14 @@ class QuestionGenerator:
                 return None
             else:
                 subj_subtree = [child for child in subj_token.subtree]
-                subj = self._doc[subj_subtree[0].i: subj_subtree[-1].i + 1] # subject is nsubj and all of its children
-    
-            # find the object of the sentence
-            if obj == None:
-                for child in verb.children:
-                    obj_found = self._search_for_object(child)
-                    if obj_found:
-                        obj = obj_found
-                        break
 
+        subj = self._doc[subj_subtree[0].i: subj_subtree[-1].i + 1] # subject is nsubj and all of its children
+        # find the object of the sentence
+        for child in verb.children:
+            obj_found = self._search_for_object(child)
+            if obj_found:
+                obj = obj_found
+                break
         wh = self._determine_wh(clause, subj.root, obj)
         verb_tense = self._determine_verb_tense(verb)
         aux = self._determine_aux(clause, verb, verb_tense, subj)
@@ -373,7 +363,6 @@ class QuestionGenerator:
         '''
         return self._questions
 
-            
 
 if __name__ == '__main__':
     doc = nlp(u'A* (pronounced "A-star") is a graph traversal and path search algorithm, and it is often used in computer science due to its completeness,'
