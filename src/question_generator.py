@@ -108,7 +108,7 @@ class QuestionGenerator:
         '''
         # no object in the sentence, ask a why question
         if not obj:
-            return 'Why'
+            return 'What'
         
         ent = nlp.vocab[obj.ent_type].text
 
@@ -124,7 +124,7 @@ class QuestionGenerator:
             return 'What'
         
     
-    def _fg_aux(self, aux):
+    def _fg_aux(self, aux, verb_tense):
         '''
         Fine-grain tunes an auxillary verb according to exceptions found in English.
         
@@ -135,11 +135,15 @@ class QuestionGenerator:
             Changed form of the auxillary verb as a string
         '''
         if aux.text == 'to':
-            return 'will'
+            if verb_tense == 'PRESENT':
+                return 'does'
+            elif 'PAST' in verb_tense:
+                return 'did'
+            else:
+                return 'will'
         elif aux.text == 'be':
             return 'is'
         else:
-            print('err: could not fine grain tune', aux)
             return aux.text
 
     def _determine_aux(self, clause, verb, verb_tense, subj) -> str:
@@ -157,14 +161,14 @@ class QuestionGenerator:
         '''
         # verb is preceded by the auxillary verb
         if verb.nbor(-1).pos_ == 'AUX':
-            return self._fg_aux(verb.nbor(-1))
+            return self._fg_aux(verb.nbor(-1), verb_tense)
         
         # look for the auxillary verb
         for token in clause:
             if token.pos_ == 'AUX' or nlp.vocab[token.dep].text == 'aux':
                 if verb == token: # aux is root verb
-                    return self._fg_aux(verb)
-                return self._fg_aux(token)
+                    return self._fg_aux(verb, verb_tense)
+                return self._fg_aux(token, verb_tense)
     
         # if no auxillary verb could be found in the sentence, use default aux verb (do)
         if verb_tense == 'PAST_TENSE':
@@ -278,14 +282,14 @@ class QuestionGenerator:
         aux = self._determine_aux(clause, verb, verb_tense, subj)
         
         if verb_tense in {'PAST_TENSE', 'PRESENT'} and verb.text != aux:
-            verb = verb.lemma_
+            verb_text = verb.lemma_
         else:
-            verb = verb.text
-
+            verb_text = verb.text
+        
         c_map['wh'] = wh
         c_map['nsubj'] = subj
         c_map['obj'] = obj
-        c_map['verb'] = verb
+        c_map['verb'] = verb_text
         c_map['aux'] = aux
 
         return c_map
@@ -319,16 +323,12 @@ class QuestionGenerator:
             # parse the clause for syntax (nominal subject, verb, etc.)
             c_map = self._map_syntax(start, end)
 
-            if c_map == None:
+            if c_map == None or None in {c_map['wh'], c_map['aux'], c_map['nsubj'], c_map['verb']}:
                 end += 1
                 continue
             
             start = c_map['end']
             end = start
-
-            if None in {c_map['wh'], c_map['aux'], c_map['nsubj'], c_map['verb']}:
-                end += 1
-                continue
 
             self._questions.append(QuestionGenerator.Question(
                 c_map['wh'], 
@@ -356,7 +356,6 @@ class QuestionGenerator:
                 c_map['obj'],
             ))
 
-
     def get_questions(self) -> list:
         '''
         Returns all of the questions contained in the Question Generator
@@ -365,7 +364,9 @@ class QuestionGenerator:
 
 
 if __name__ == '__main__':
-    doc = nlp(u'A* (pronounced "A-star") is a graph traversal and path search algorithm, and it is often used in computer science due to its completeness,'
-    u' optimality, and optimal efficiency. One major practical drawback is its O(b^d) space complexity, as it stores all generated nodes in memory.')
-    qg = QuestionGenerator(doc)
-    qg.get_questions()
+    doc_str = u'A* (pronounced "A-star") is a graph traversal and path search algorithm, and it is often used in computer science due to its completeness,'
+    u' optimality, and optimal efficiency. One major practical drawback is its O(b^d) space complexity, as it stores all generated nodes in memory.'
+    qg = QuestionGenerator(doc_str)
+    questions = qg.get_questions()
+    for q in questions:
+      print(q)
